@@ -1,0 +1,1724 @@
+openapi: 3.0.0
+info:
+  title: Respeecher API
+  version: "1.0"
+  description: API for interacting with Respeecher services, including key and session management, and calibration functionalities.
+servers:
+  - url: 'https://api.respeecher.com'
+paths:
+
+  /api/api-key:
+    post:
+      summary: Generate a new API key
+      operationId: generateApiKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expires_at:
+                  type: string
+                  format: date-time
+                  description: Expiration date and time of the API key in ISO 8601 format.
+      responses:
+        '200':
+          description: API key generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  api_key:
+                    type: string
+                    description: The newly generated API key.
+    delete:
+      summary: Delete the API key associated with your account
+      operationId: deleteApiKey
+      responses:
+        '200':
+          description: API key deleted successfully
+
+  /api/login:
+    post:
+      summary: Log in to an account and start a new session
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                  csrf_token:
+                    type: string
+                  session_duration:
+                    type: integer
+
+  /api/logout:
+    post:
+      summary: End your session
+      operationId: logout
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: OK
+
+  /api/calibration:
+    post:
+      summary: Create a new Calibration
+      description: Currently the supported audio formats are wav, ogg, mp3 or flac.
+      operationId: createCalibration
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Unique name for the calibration.
+                data:
+                  type: string
+                  format: binary
+                  description: The audio binary data.
+      responses:
+        '200':
+          description: Calibration created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalibrationResponse'
+    get:
+      summary: Get a list of calibrations associated with your account
+      operationId: listCalibrations
+      responses:
+        '200':
+          description: A list of calibrations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CalibrationResponse'
+
+  /api/calibration/{calibration_id}/enable:
+    put:
+      summary: Set a calibration as the default enabled calibration
+      operationId: enableCalibration
+      parameters:
+        - name: calibration_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Calibration enabled successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CalibrationResponse'
+
+  /api/calibration/{calibration_id}:
+    get:
+      summary: Get a calibration by its ID
+      operationId: getCalibration
+      parameters:
+        - name: calibration_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Calibration details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalibrationResponse'
+    delete:
+      summary: Delete a calibration
+      operationId: deleteCalibration
+      parameters:
+        - name: calibration_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The deleted calibration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalibrationResponse'
+
+  # /api/calibration/auto:
+  #   post:
+  #     summary: Set auto as the default calibration
+  #     operationId: setAutoCalibration
+  #     responses:
+  #       '200':
+  #         description: Auto calibration set successfully
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/UserProfile'
+
+  /api/credits:
+    get:
+      summary: Get the credits available to your account
+      operationId: getCredits
+      responses:
+        '200':
+          description: Credits information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  credits:
+                    type: integer
+                  initial_credits:
+                    type: integer
+
+  /api/projects:
+    get:
+      summary: Get a list of your projects
+      operationId: listProjects
+      parameters:
+        - name: limit
+          description: The maximum number of projects to list.
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          description: The number of projects to offset the list by.
+          in: query
+          schema:
+            type: integer
+        - name: sort
+          description: Sort by name, created_at or last_recording_at.
+          in: query
+          schema:
+            type: string
+        - name: direction
+          description: Order projects by asc or desc.
+          in: query
+          schema:
+            type: string
+        - name: owner
+          description: List projects for a specific owner ID.
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Projects list retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectListResponse'
+    post:
+      summary: Create a new project
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectRequest'
+      responses:
+        '200':
+          description: Project created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+
+  /api/projects/{project_id}:
+    patch:
+      summary: Change the name of a project
+      operationId: updateProject
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Project updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+    delete:
+      summary: Delete a project
+      operationId: deleteProject
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Project deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+
+  /api/projects/by-url:
+    get:
+      summary: Get a project by its URL
+      operationId: getProjectByUrl
+      parameters:
+        - name: project_url
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Project retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+
+  /api/projects/{project_id}/export:
+    get:
+      summary: Export a project
+      operationId: exportProject
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: starred_only
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Project exported successfully
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+
+  /api/folders:
+    get:
+      summary: Get a list of the folders in a project
+      operationId: listFolders
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+        - name: direction
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Folders list retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FolderListResponse'
+    post:
+      summary: Create a folder
+      operationId: createFolder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FolderRequest'
+      responses:
+        '200':
+          description: Folder created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Folder'
+
+  /api/folders/{folder_id}:
+    patch:
+      summary: Rename a folder
+      operationId: renameFolder
+      parameters:
+        - name: folder_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Folder renamed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Folder'
+    delete:
+      summary: Delete a folder
+      operationId: deleteFolder
+      parameters:
+        - name: folder_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Folder deleted successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+    get:
+      summary: Get a folder by its ID
+      operationId: getFolderById
+      parameters:
+        - name: folder_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Folder retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Folder'
+
+  /api/recordings:
+    get:
+      summary: Get a list of recordings for a specified folder or project
+      operationId: listRecordings
+      parameters:
+        - name: project_id
+          in: query
+          schema:
+            type: string
+        - name: folder_id
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+        - name: direction
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of recordings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordingListResponse'
+    post:
+      summary: Create an original recording
+      operationId: createOriginalRecording
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: string
+                  format: binary
+                  description: The audio binary data
+                parent_folder_id:
+                  type: string
+                microphone:
+                  type: string
+                  description: Name of the microphone used, set to 'file' if uploading a file
+                label:
+                  type: string
+      responses:
+        '200':
+          description: Original recording created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recording'
+
+  /api/recordings/originals:
+    get:
+      summary: Get a list of the original recordings in a folder
+      operationId: listOriginalRecordings
+      # Parameters are the same as /api/recordings
+      responses:
+        '200':
+          description: List of original recordings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordingListResponse'
+
+  /api/recordings/conversions:
+    get:
+      summary: Get a list of the conversions for an original recording
+      operationId: listConversions
+      parameters:
+        - name: original_id
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+        - name: direction
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of recordings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordingListResponse'
+  /api/v2/recordings/tts:
+    post:
+      summary: Create an original text-to-speech recording
+      operationId: createTTSRecording
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TTSRecordingRequest'
+      responses:
+        '200':
+          description: TTS recording created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recording'
+
+  /api/recordings/{recording_id}:
+    patch:
+      summary: Update a recording
+      operationId: updateRecording
+      parameters:
+        - name: recording_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The ID of the recording to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                label:
+                  type: string
+                  description: New label for the recording
+                starred:
+                  type: boolean
+                  description: Mark the recording as starred or not
+      responses:
+        '200':
+          description: Recording updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recording'
+    delete:
+      summary: Delete a recording
+      operationId: deleteRecording
+      parameters:
+        - name: recording_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The ID of the recording to delete
+      responses:
+        '204':
+          description: Recording deleted successfully
+    get:
+      summary: Get a recording by its ID
+      operationId: getRecordingById
+      parameters:
+        - name: recording_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The ID of the recording to fetch
+      responses:
+        '200':
+          description: Recording fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recording'
+
+  /api/tts-voices:
+    get:
+      summary: Get a list of the available TTS voices
+      operationId: listTTSVoices
+      responses:
+        '200':
+          description: List of TTS voices retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TTSVoicesResponse'
+
+  /api/notes:
+    post:
+      summary: Create a note associated with a recording
+      operationId: createNote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteRequest'
+      responses:
+        '200':
+          description: Note created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoteResponse'
+    put:
+      summary: Update a note
+      operationId: updateNote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteRequest'
+      responses:
+        '200':
+          description: Note updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoteResponse'
+    delete:
+      summary: Delete a note
+      operationId: deleteNote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteDeleteRequest'
+      responses:
+        '200':
+          description: Note deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoteResponse'
+
+  /api/stats:
+    get:
+      summary: Get the statistics for your account
+      operationId: getAccountStatistics
+      responses:
+        '200':
+          description: Account statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountStatistics'
+
+  /api/stats/projects:
+    get:
+      summary: Get statistics for a list of projects
+      operationId: getProjectsStatistics
+      parameters:
+        - name: project_ids
+          in: query
+          description: Comma-separated list of project IDs to fetch statistics for.
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Statistics for the specified projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectsStatisticsResponse'
+
+  /api/stats/folders:
+    post:
+      summary: Get statistics for a list of folders
+      operationId: getFoldersStatistics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FoldersStatisticsRequest'
+      responses:
+        '200':
+          description: Folders statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FoldersStatisticsResponse'
+
+  /api/v2/orders:
+    post:
+      summary: Create a conversion order
+      operationId: createOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+      responses:
+        '200':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+
+  /api/v2/orders/retry/{recording_id}:
+    post:
+      summary: Retry a conversion order for a specific original
+      operationId: retryOrderV2
+      parameters:
+        - name: recording_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Order retried successfully
+
+  /api/v2/voices:
+    get:
+      summary: Get a list of the voices available
+      operationId: listVoices
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 25
+          description: Limits the number of voices returned in the response. Defaults to 25.
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Offsets the list of voices to paginate through results. Defaults to 0.
+        - name: sort
+          in: query
+          schema:
+            type: string
+          description: Sorts the voices by a specified attribute (e.g., name, pitch, rating, or created_at).
+        - name: direction
+          in: query
+          schema:
+            type: string
+          description: Specifies the direction of sorting. Can be 'asc' for ascending or 'desc' for descending.
+        - name: visibility
+          in: query
+          schema:
+            type: string
+          description: Filters voices by their visibility status (e.g., public, paid, private, or kids).
+        - name: species
+          in: query
+          schema:
+            type: string
+          description: Filters voices by species category (e.g., human, animal, or other).
+        - name: gender
+          in: query
+          schema:
+            type: string
+          description: Filters voices by gender (e.g., male or female).
+        - name: age_group
+          in: query
+          schema:
+            type: string
+          description: Filters voices by age group (e.g., child, young, adult, or senior).
+        - name: pitch_group
+          in: query
+          schema:
+            type: string
+          description: Filters voices by pitch group (e.g., low, mid, or high).
+        - name: nationality
+          in: query
+          schema:
+            type: string
+          description: Filters voices by nationality.
+      responses:
+        '200':
+          description: List of available voices
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoicesListResponse'
+
+  /api/v2/voices/search:
+    get:
+      summary: Search for a voice by its name
+      operationId: searchVoices
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Voice'
+
+  /api/v2/voices/favorite/{voice_id}:
+    post:
+      summary: Mark a voice as a favorite
+      operationId: favoriteVoice
+      parameters:
+        - name: voice_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                favorite:
+                  type: boolean
+      responses:
+        '200':
+          description: Voice updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Voice'
+
+  /api/v2/voices/settings:
+    post:
+      summary: Set the settings for a voice
+      operationId: setVoiceSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoiceSettingsRequest'
+      responses:
+        '200':
+          description: Voice settings updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Voice'
+
+  /api/v2/accents/samples:
+    get:
+      summary: Get samples available for an accent
+      operationId: getAccentSamples
+      parameters:
+        - name: accent_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Accent samples
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccentSamplesResponse'
+
+  /storage/{file_to_download}:
+    get:
+      summary: Download file
+      operationId: downloadFile
+      description: Downloads the specified file in binary format.
+      parameters:
+        - name: file_to_download
+          in: path
+          required: true
+          description: The name of the file to be downloaded, including its extension.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File downloaded successfully.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: File not found.
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: api-key
+    CookieAuth:
+      type: apiKey
+      in: header
+      name: X-Csrf-Token
+
+  schemas:
+    CalibrationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        user_id:
+          type: string
+        f0:
+          type: integer
+        algorithm:
+          type: string
+        bucket:
+          type: string
+        key:
+          type: string
+        state:
+          type: string
+        error:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        calibrated_at:
+          type: string
+          format: date-time
+        enabled:
+          type: boolean
+
+    ProjectListResponse:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectResponse'
+        pagination:
+          type: object
+          properties:
+            count:
+              type: integer
+            limit:
+              type: integer
+            offset:
+              type: integer
+
+    ProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        owner:
+          type: string
+        models:
+          type: object
+          deprecated: true
+
+    ProjectResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        owner:
+          type: string
+        url:
+          type: string
+        models:
+          type: object
+          deprecated: true
+        id:
+          type: string
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        last_recording_at:
+          type: string
+          format: date-time
+
+    FolderRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        project_id:
+          type: string
+
+    FolderListResponse:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: '#/components/schemas/Folder'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    Folder:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        owner:
+          type: string
+        url:
+          type: string
+        models:
+          type: object
+          additionalProperties: true
+        id:
+          type: string
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        last_recording_at:
+          type: string
+          format: date-time
+
+    RecordingListResponse:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recording'
+        pagination:
+          type: object
+          properties:
+            count:
+              type: integer
+            limit:
+              type: integer
+            offset:
+              type: integer
+
+    Recording:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the recording.
+        project_id:
+          type: string
+          format: uuid
+          description: The project identifier this recording belongs to.
+        parent_folder_id:
+          type: string
+          format: uuid
+          description: The folder identifier in which this recording is stored.
+        type:
+          type: string
+          description: The type of recording.
+        url:
+          type: string
+          format: uri
+          description: The URL to access the recording.
+          nullable: true
+        waveform_url:
+          type: string
+          format: uri
+          description: The URL to access the waveform of the recording.
+          nullable: true
+        file_name:
+          type: string
+          description: The name of the recording file.
+          nullable: true
+        label:
+          type: string
+          description: A label for the recording.
+        state:
+          type: string
+          description: The state of the recording.
+        original_id:
+          type: string
+          format: uuid
+          description: Identifier for the original recording.
+          nullable: true
+        model_id:
+          type: string
+          format: uuid
+          description: The model identifier used for the recording.
+          nullable: true
+        model_name:
+          type: string
+          description: The name of the model used.
+        voice_id:
+          type: string
+          format: uuid
+          description: The voice identifier used for the recording.
+          nullable: true
+        voice_name:
+          type: string
+          description: The name of the voice used.
+        accent_id:
+          type: string
+          format: uuid
+          description: The accent identifier used for the recording.
+          nullable: true
+        accent_name:
+          type: string
+          description: The name of the accent used.
+          nullable: true
+        narration_style_id:
+          type: string
+          format: uuid
+          description: The narration style identifier used for the recording.
+          nullable: true
+        narration_style_name:
+          type: string
+          description: The name of the narration style used.
+          nullable: true
+        semitones_correction:
+          type: number
+          format: float
+          description: Semitones correction applied to the recording.
+        calibration_id:
+          type: string
+          format: uuid
+          description: The calibration identifier used for the recording.
+          nullable: true
+        calibration_value:
+          type: string
+          description: The calibration value used.
+          nullable: true
+        calibration_name:
+          type: string
+          description: The name of the calibration used.
+          nullable: true
+        microphone:
+          type: string
+          description: The microphone used for the recording.
+        size:
+          type: integer
+          description: The size of the recording file in bytes.
+        duration:
+          type: number
+          format: float
+          description: The duration of the recording in seconds.
+        starred:
+          type: boolean
+          description: Indicates if the recording is marked as favorite.
+        tts:
+          type: boolean
+          description: Indicates if the recording is synthesized from text.
+        tts_voice:
+          type: string
+          description: The TTS voice used for the recording.
+          nullable: true
+        tts_voice_id:
+          type: string
+          format: uuid
+          description: The TTS voice identifier used for the recording.
+          nullable: true
+        text:
+          type: string
+          description: The text content of the TTS recording.
+        params:
+          type: object
+          additionalProperties: true
+          description: Additional parameters for the recording.
+        error:
+          type: string
+          description: Any error message associated with the recording.
+        active:
+          type: boolean
+          description: Indicates if the recording is active.
+        created_at:
+          type: string
+          format: date-time
+          description: The creation date and time of the recording.
+        converted_at:
+          type: string
+          format: date-time
+          description: The date and time when the recording was converted.
+          nullable: true
+        listen_count:
+          type: integer
+          description: The number of times the recording has been played.
+        process_stage:
+          type: string
+          description: The current processing stage of the recording.
+          nullable: true
+        note:
+          type: string
+          description: An optional note about the recording.
+          nullable: true
+        transaction_id:
+          type: string
+          format: uuid
+          description: The transaction identifier associated with the recording.
+          nullable: true
+        moderation:
+          type: object
+          description: Moderation status or information.
+          properties:
+            state:
+              type: string
+              description: The moderation state of the recording.
+            error:
+              type: string
+              description: Any error message associated with the moderation.
+            language:
+              type: string
+              description: The language of the recording.
+            has_violations:
+              type: boolean
+              description: Indicates if the recording has violations.
+          nullable: true
+
+    TTSRecordingRequest:
+      type: object
+      properties:
+        parent_folder_id:
+          type: string
+          format: string
+          description: The ID of the parent folder.
+        text:
+          type: string
+          description: The text to be converted to speech.
+        tts_voice_id:
+          type: string
+          format: string
+          description: The ID of the TTS voice to be used.
+        label:
+          type: string
+          description: A label for the request. (Optional)
+          nullable: true
+
+    TTSVoicesResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/TTSVoice'
+
+    TTSVoice:
+      type: object
+      properties:
+        id:
+          type: string
+        visibility:
+          type: string
+        name:
+          type: string
+        f0:
+          type: number
+        is_default:
+          type: boolean
+
+    NoteRequest:
+      type: object
+      properties:
+        recording_id:
+          type: string
+        text:
+          type: string
+
+    NoteResponse:
+      type: object
+      properties:
+        recording_id:
+          type: string
+        text:
+          type: string
+        id:
+          type: string
+        active:
+          type: boolean
+
+    NoteDeleteRequest:
+      type: object
+      properties:
+        recording_id:
+          type: string
+
+    AccountStatistics:
+      type: object
+      properties:
+        time_converted:
+          type: object
+          properties:
+            total:
+              type: integer
+            current_month:
+              type: integer
+            previous_monthes:
+              type: array
+              items:
+                type: object
+                properties:
+                  month:
+                    type: string
+                    format: date
+                  duration:
+                    type: integer
+        conversions:
+          type: object
+          properties:
+            total:
+              type: integer
+            completed:
+              type: integer
+            in_progress:
+              type: integer
+            failed:
+              type: integer
+        models:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              conversions_count:
+                type: integer
+              converted_time:
+                type: integer
+
+    ProjectsStatisticsRequest:
+      type: object
+      properties:
+        project_ids:
+          type: array
+          items:
+            type: string
+
+    ProjectsStatisticsResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/ProjectStatistics'
+
+    ProjectStatistics:
+      type: object
+      properties:
+        project_id:
+          type: string
+          description: The unique identifier for the project.
+        time_converted:
+          type: object
+          properties:
+            total:
+              type: integer
+              description: The total time converted for this project.
+            current_month:
+              type: integer
+              description: The total time converted for this project in the current month.
+        conversions:
+          type: object
+          properties:
+            total:
+              type: integer
+              description: The total number of conversions for this project.
+            completed:
+              type: integer
+              description: The number of completed conversions for this project.
+            in_progress:
+              type: integer
+              description: The number of conversions currently in progress for this project.
+            failed:
+              type: integer
+              description: The number of conversions that failed for this project.
+
+    FoldersStatisticsRequest:
+      type: object
+      properties:
+        folder_ids:
+          type: array
+          items:
+            type: string
+
+    FoldersStatisticsResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/FolderStatistics'
+
+    FolderStatistics:
+      type: object
+      properties:
+        folder_id:
+          type: string
+          description: The unique identifier of the folder.
+        stats:
+          type: object
+          properties:
+            total:
+              type: integer
+              description: The total number of conversions within the folder.
+            completed:
+              type: integer
+              description: The number of completed conversions within the folder.
+            in_progress:
+              type: integer
+              description: The number of conversions currently in progress within the folder.
+            failed:
+              type: integer
+              description: The number of conversions that failed within the folder.
+
+    OrderRequest:
+      type: object
+      properties:
+        original_id:
+          type: string
+          description: The ID of the original recording to create a conversion from.
+        conversions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConversionDetail'
+        calibration_id:
+          type: string
+          nullable: true
+          description: The ID of the calibration to use, if applicable.
+        use_calibration:
+          type: boolean
+          description: Whether to use a specific calibration for the conversion.
+
+    ConversionDetail:
+      type: object
+      properties:
+        voice_id:
+          type: string
+          description: The ID of the voice to use for the conversion.
+        narration_style_id:
+          type: string
+          nullable: true
+          description: The ID of the narration style to use, if applicable.
+        accent_id:
+          type: string
+          nullable: true
+          description: The ID of the accent to use, if applicable.
+        semitones_correction:
+          type: integer
+          nullable: true
+          description: The number of semitones to shift the converted output to.
+        label:
+          type: string
+          nullable: true
+          description: A label to identify the conversion.
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the conversion order.
+        user_id:
+          type: string
+          format: uuid
+          description: The user identifier associated with the order.
+        original_id:
+          type: string
+          format: uuid
+          description: Identifier for the original recording or file.
+        conversion_id:
+          type: string
+          format: uuid
+          description: Identifier for the conversion operation.
+        transaction_id:
+          type: string
+          format: uuid
+          description: Transaction identifier associated with the order (if applicable).
+          nullable: true
+        moderation_id:
+          type: string
+          format: uuid
+          description: Moderation identifier associated with the order (if applicable).
+          nullable: true
+        calibration_id:
+          type: string
+          format: uuid
+          description: Calibration identifier used in the conversion process (if applicable).
+          nullable: true
+        tracking_id:
+          type: string
+          format: uuid
+          description: Tracking identifier for the order.
+        f0:
+          type: number
+          format: float
+          description: Fundamental frequency adjustment applied to the conversion (if any).
+          nullable: true
+        state:
+          type: string
+          description: The current state of the conversion order.
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the order was created.
+        closed_at:
+          type: string
+          format: date-time
+          description: Timestamp when the order was closed (if applicable).
+          nullable: true
+        error:
+          type: string
+          description: Error message related to the order (if any).
+          nullable: true
+
+    VoicesListResponse:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: '#/components/schemas/Voice'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    Voice:
+      type: object
+      properties:
+        id:
+          type: string
+        owner_id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        visibility:
+          type: string
+        species:
+          type: string
+        artist:
+          type: string
+          nullable: true  # Since artist can be null
+        verified_artist:
+          type: boolean
+        gender:
+          type: string
+        pitch:
+          type: number
+          format: double
+        age_group:
+          type: string
+        pitch_group:
+          type: string
+        nationality:
+          type: string
+        image_url:
+          type: string
+          format: uri
+        thumbnail_url:
+          type: string
+          format: uri
+        description:
+          type: string
+          nullable: true  # Since description can be null
+        rating:
+          type: integer
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        favorite:
+          type: boolean
+        available:
+          type: boolean
+        accents:
+          type: array
+          items:
+            $ref: '#/components/schemas/Accent'
+        narration_styles:
+          type: array
+          items:
+            type: object  # Define the schema for narration styles if you have specific properties
+        tiers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tier'
+
+    Accent:
+      type: object
+      properties:
+        id:
+          type: string
+        is_default:
+          type: boolean
+        native:
+          type: boolean
+        info:
+          type: object
+          properties:
+            name:
+              type: string
+            short_name:
+              type: string
+            locale:
+              type: string
+        tiers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tier'
+        available:
+          type: boolean
+        settings:
+          type: object
+          nullable: true  # Assuming settings can be null or have a dynamic structure
+
+    Tier:
+      type: object
+      properties:
+        name:
+          type: string
+
+    VoiceSettingsRequest:
+      type: object
+      properties:
+        voice_id:
+          type: string
+        narration_style_id:
+          type: string
+        accent_id:
+          type: string
+        semitones_correction:
+          type: integer
+
+    AccentSamplesResponse:
+      type: object
+      properties:
+        samples:
+          type: object
+          # Define the structure for samples
+
+    Pagination:
+      type: object
+      properties:
+        count:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+security:
+  - ApiKeyAuth: []
+  - CookieAuth: []
