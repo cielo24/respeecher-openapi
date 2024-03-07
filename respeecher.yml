@@ -540,6 +540,7 @@ paths:
       parameters:
         - name: original_id
           in: query
+          required: true
           schema:
             type: string
         - name: limit
