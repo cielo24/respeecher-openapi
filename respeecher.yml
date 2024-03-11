@@ -652,7 +652,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TTSVoicesResponse'
+                type: array
+                items:
+                  $ref: '#/components/schemas/TTSVoice'
 
   /api/notes:
     post:
@@ -940,29 +942,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccentSamplesResponse'
-
-  /storage/{file_to_download}:
-    get:
-      summary: Download file
-      operationId: downloadFile
-      description: Downloads the specified file in binary format.
-      parameters:
-        - name: file_to_download
-          in: path
-          required: true
-          description: The name of the file to be downloaded, including its extension.
-          schema:
-            type: string
-      responses:
-        '200':
-          description: File downloaded successfully.
-          content:
-            application/octet-stream:
-              schema:
-                type: string
-                format: binary
-        '404':
-          description: File not found.
 
 components:
   securitySchemes:
@@ -1312,11 +1291,6 @@ components:
           type: string
           description: A label for the request. (Optional)
           nullable: true
-
-    TTSVoicesResponse:
-      type: array
-      items:
-        $ref: '#/components/schemas/TTSVoice'
 
     TTSVoice:
       type: object
